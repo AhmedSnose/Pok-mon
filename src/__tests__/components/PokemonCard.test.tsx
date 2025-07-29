@@ -1,101 +1,107 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '../../test/test-utils';
-import { PokemonCard } from '../../components/PokemonCard';
-import { createMockPokemon } from '../../test/mocks';
+"use client"
+
+import { describe, it, expect, vi, beforeEach } from "vitest"
+import { render, screen, fireEvent } from "../../test/test-utils"
+import { PokemonCard } from "../../components/PokemonCard"
+import { createMockPokemon } from "../../test/mocks"
 
 const mockPokemon = createMockPokemon({
   types: [
-    { slot: 1, type: { name: 'electric', url: '' } },
-    { slot: 2, type: { name: 'normal', url: '' } },
+    { slot: 1, type: { name: "electric", url: "" } },
+    { slot: 2, type: { name: "normal", url: "" } },
   ],
-});
+})
 
-describe('PokemonCard', () => {
-  const mockOnClick = vi.fn();
+// Mock localStorage
+const localStorageMock = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+}
+
+Object.defineProperty(window, "localStorage", {
+  value: localStorageMock,
+})
+
+describe("PokemonCard", () => {
+  const mockOnClick = vi.fn()
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    localStorage.clear();
-  });
+    vi.clearAllMocks()
+    localStorageMock.clear()
+    localStorageMock.getItem.mockReturnValue(null)
+  })
 
-  it('renders pokemon information correctly', () => {
-    render(<PokemonCard pokemon={mockPokemon} onClick={mockOnClick} />);
+  it("renders pokemon information correctly", () => {
+    render(<PokemonCard pokemon={mockPokemon} onClick={mockOnClick} />)
 
-    expect(screen.getByText('Pikachu')).toBeInTheDocument();
-    expect(screen.getByText('#025')).toBeInTheDocument();
-    expect(screen.getByText('0.4 m')).toBeInTheDocument();
-    expect(screen.getByText('6.0 kg')).toBeInTheDocument();
-    expect(screen.getByText('Electric')).toBeInTheDocument();
-    expect(screen.getByText('Normal')).toBeInTheDocument();
-  });
+    expect(screen.getByText("Pikachu")).toBeInTheDocument()
+    expect(screen.getByText("#025")).toBeInTheDocument()
 
-  it('displays pokemon image', () => {
-    render(<PokemonCard pokemon={mockPokemon} onClick={mockOnClick} />);
+    // Use more flexible text matching for height and weight
+    expect(screen.getByText(/Height:.*0\.4.*m/)).toBeInTheDocument()
+    expect(screen.getByText(/Weight:.*6\.0.*kg/)).toBeInTheDocument()
 
-    const image = screen.getByAltText('Pikachu');
-    expect(image).toBeInTheDocument();
-    expect(image).toHaveAttribute('src', 'https://example.com/pikachu-artwork.png');
-  });
+    expect(screen.getByText("Electric")).toBeInTheDocument()
+    expect(screen.getByText("Normal")).toBeInTheDocument()
+  })
 
-  it('calls onClick when card is clicked', () => {
-    render(<PokemonCard pokemon={mockPokemon} onClick={mockOnClick} />);
+  it("displays pokemon image", () => {
+    render(<PokemonCard pokemon={mockPokemon} onClick={mockOnClick} />)
 
-    fireEvent.click(screen.getByText('Pikachu'));
-    expect(mockOnClick).toHaveBeenCalledTimes(1);
-  });
+    const image = screen.getByAltText("Pikachu")
+    expect(image).toBeInTheDocument()
+    expect(image).toHaveAttribute("src", "https://example.com/pikachu-artwork.png")
+  })
 
-  it('toggles favorite status when heart is clicked', () => {
-    render(<PokemonCard pokemon={mockPokemon} onClick={mockOnClick} />);
+  it("calls onClick when card is clicked", () => {
+    render(<PokemonCard pokemon={mockPokemon} onClick={mockOnClick} />)
 
-    const favoriteButton = screen.getByRole('button');
-    
-    // Initially not favorited
-    expect(favoriteButton).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Pikachu"))
+    expect(mockOnClick).toHaveBeenCalledTimes(1)
+  })
 
-    // Click to favorite
-    fireEvent.click(favoriteButton);
-    
-    // Check localStorage was called
-    expect(localStorage.setItem).toHaveBeenCalledWith(
-      'pokemon-favorites',
-      JSON.stringify([25])
-    );
+  it("toggles favorite status when heart is clicked", () => {
+    render(<PokemonCard pokemon={mockPokemon} onClick={mockOnClick} />)
 
-    // Click again to unfavorite
-    fireEvent.click(favoriteButton);
-    
-    expect(localStorage.setItem).toHaveBeenCalledWith(
-      'pokemon-favorites',
-      JSON.stringify([])
-    );
-  });
+    const favoriteButton = screen.getByTestId("favorite-btn-25")
 
-  it('loads favorite status from localStorage', () => {
-    // Mock localStorage to return favorite
-    (localStorage.getItem as any).mockReturnValue(JSON.stringify([25]));
+    expect(favoriteButton).toBeInTheDocument()
 
-    render(<PokemonCard pokemon={mockPokemon} onClick={mockOnClick} />);
+    fireEvent.click(favoriteButton)
 
-    expect(localStorage.getItem).toHaveBeenCalledWith('pokemon-favorites');
-  });
+    expect(localStorageMock.setItem).toHaveBeenCalledWith("pokemon-favorites", JSON.stringify([25]))
 
-  it('prevents card click when favorite button is clicked', () => {
-    render(<PokemonCard pokemon={mockPokemon} onClick={mockOnClick} />);
+    fireEvent.click(favoriteButton)
 
-    const favoriteButton = screen.getByRole('button');
-    fireEvent.click(favoriteButton);
+    expect(localStorageMock.setItem).toHaveBeenCalledWith("pokemon-favorites", JSON.stringify([]))
+  })
 
-    // Card onClick should not be called when favorite button is clicked
-    expect(mockOnClick).not.toHaveBeenCalled();
-  });
+  it("loads favorite status from localStorage", () => {
+    localStorageMock.getItem.mockReturnValue(JSON.stringify([25]))
 
-  it('applies correct type colors', () => {
-    render(<PokemonCard pokemon={mockPokemon} onClick={mockOnClick} />);
+    render(<PokemonCard pokemon={mockPokemon} onClick={mockOnClick} />)
 
-    const electricType = screen.getByText('Electric');
-    expect(electricType).toHaveClass('type-electric');
+    expect(localStorageMock.getItem).toHaveBeenCalledWith("pokemon-favorites")
+  })
 
-    const normalType = screen.getByText('Normal');
-    expect(normalType).toHaveClass('type-normal');
-  });
-});
+  it("prevents card click when favorite button is clicked", () => {
+    render(<PokemonCard pokemon={mockPokemon} onClick={mockOnClick} />)
+
+    const favoriteButton = screen.getByTestId("favorite-btn-25")
+    fireEvent.click(favoriteButton)
+
+    expect(mockOnClick).not.toHaveBeenCalled()
+  })
+
+  it("applies correct type colors", () => {
+    render(<PokemonCard pokemon={mockPokemon} onClick={mockOnClick} />)
+
+    const electricType = screen.getByText("Electric")
+    expect(electricType).toHaveClass("bg-type-electric")
+
+    const normalType = screen.getByText("Normal")
+    expect(normalType).toHaveClass("bg-type-normal")
+  })
+})

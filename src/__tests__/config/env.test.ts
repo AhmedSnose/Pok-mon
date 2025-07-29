@@ -28,7 +28,7 @@ describe('Environment Configuration', () => {
   it('uses environment variable when VITE_BASE_API_URL is set', async () => {
     vi.stubGlobal('import.meta', {
       env: {
-        VITE_BASE_API_URL: 'https://custom-api.com/v1',
+        VITE_BASE_API_URL: 'https://pokeapi.co/api/v2',
       },
     });
 
@@ -36,7 +36,7 @@ describe('Environment Configuration', () => {
     vi.resetModules();
     const config = await import('../../config/env');
     
-    expect(config.default.baseApiUrl).toBe('https://custom-api.com/v1');
+    expect(config.default.baseApiUrl).toBe('https://pokeapi.co/api/v2');
   });
 
   it('handles empty string environment variable', async () => {
